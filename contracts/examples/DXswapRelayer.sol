@@ -319,10 +319,22 @@ contract DXswapRelayer {
             _liquidity,
             _minA,
             _minB,
-            owner,
+            address(this),
             block.timestamp
         );
         TransferHelper.safeApprove(_pair, dxSwapRouter, 0);
+        if(_tokenA == WETH){	
+          IWETH(WETH).withdraw(amountA);
+          ETHWithdraw(amountA);
+        } else {
+          ERC20Withdraw(_tokenA, amountA);
+        }
+        if (_tokenB == WETH){	
+          IWETH(WETH).withdraw(amountB);
+          ETHWithdraw(amountB);
+        } else {
+          ERC20Withdraw(_tokenB, amountB);
+        }
     }
 
     // Internal function to calculate the optimal time window for price observation
