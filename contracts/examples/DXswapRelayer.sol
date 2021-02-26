@@ -323,13 +323,13 @@ contract DXswapRelayer {
             block.timestamp
         );
         TransferHelper.safeApprove(_pair, dxSwapRouter, 0);
-        if(_tokenA == WETH){	
+        if(_tokenA == WETH){
           IWETH(WETH).withdraw(amountA);
           ETHWithdraw(amountA);
         } else {
           ERC20Withdraw(_tokenA, amountA);
         }
-        if (_tokenB == WETH){	
+        if (_tokenB == WETH){
           IWETH(WETH).withdraw(amountB);
           ETHWithdraw(amountB);
         } else {
@@ -379,13 +379,13 @@ contract DXswapRelayer {
     }
     
     // Allows the owner to withdraw any ERC20 from the relayer
-    function ERC20Withdraw(address token, uint256 amount) external {
+    function ERC20Withdraw(address token, uint256 amount) public {
         require(msg.sender == owner, 'DXswapRelayer: CALLER_NOT_OWNER');
         TransferHelper.safeTransfer(token, owner, amount);
     }
 
     // Allows the owner to withdraw any ETH amount from the relayer
-    function ETHWithdraw(uint256 amount) external {
+    function ETHWithdraw(uint256 amount) public {
         require(msg.sender == owner, 'DXswapRelayer: CALLER_NOT_OWNER');
         TransferHelper.safeTransferETH(owner, amount);
     }
