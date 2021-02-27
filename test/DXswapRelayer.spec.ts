@@ -271,11 +271,16 @@ describe('DXswapRelayer', () => {
       expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
     })
 
-    it('provides initial liquidity immediately with ETH/ERC20 pair', async () => {
+    it('provides initial liquidity immediately with WETH/ERC20 pair', async () => {
+
+      let tokenA, tokenB;
+      tokenA = weth.address < wethPartner.address ? weth.address : wethPartner.address;
+      tokenB = weth.address > wethPartner.address ? weth.address : wethPartner.address;
+
       await expect(
         dxRelayer.orderLiquidityProvision(
-          AddressZero,
-          wethPartner.address,
+          tokenA,
+          tokenB,
           defaultAmountA,
           defaultAmountB,
           defaultPriceTolerance,
@@ -294,9 +299,9 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(AddressZero, dxRelayer.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
         .to.emit(wethPair, 'Sync')
-        .withArgs(defaultAmountB, defaultAmountA)
+        .withArgs(defaultAmountA, defaultAmountB)
         .to.emit(wethPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountB, defaultAmountA)
+        .withArgs(dxswapRouter.address, defaultAmountA, defaultAmountB)
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
 
@@ -340,7 +345,7 @@ describe('DXswapRelayer', () => {
       expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(22).sub(MINIMUM_LIQUIDITY))
     })
 
-    it('provides liquidity with ETH/ERC20 pair after price observation', async () => {
+    it('provides liquidity with WETH/ERC20 pair after price observation', async () => {
       await weth.deposit({ ...overrides, value: expandTo18Decimals(10) })
       await weth.transfer(wethPair.address, expandTo18Decimals(10))
       await wethPartner.transfer(wethPair.address, expandTo18Decimals(40))
@@ -349,17 +354,17 @@ describe('DXswapRelayer', () => {
 
       await expect(
         dxRelayer.orderLiquidityProvision(
-          AddressZero,
           wethPartner.address,
-          defaultAmountA,
+          weth.address,
           defaultAmountB,
+          defaultAmountA,
           defaultPriceTolerance,
           defaultMinReserve,
           defaultMinReserve,
           defaultMaxWindowTime,
           defaultDeadline,
           dxswapFactory.address,
-          { ...overrides, value: defaultAmountA }
+          { ...overrides, value: defaultAmountB }
         )
       )
         .to.emit(dxRelayer, 'NewOrder')
@@ -584,7 +589,7 @@ describe('DXswapRelayer', () => {
       await expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(2))
     })
 
-    it('removes liquidity with ETH/ERC20 pair after price observation', async () => {
+    it('removes liquidity with WETH/ERC20 pair after price observation', async () => {
       await weth.deposit({ ...overrides, value: expandTo18Decimals(10) })
       await weth.transfer(wethPair.address, expandTo18Decimals(10))
       await wethPartner.transfer(wethPair.address, expandTo18Decimals(40))
@@ -593,8 +598,8 @@ describe('DXswapRelayer', () => {
 
       await expect(
         dxRelayer.orderLiquidityRemoval(
-          AddressZero,
           wethPartner.address,
+          weth.address,
           expectedLiquidity.sub(MINIMUM_LIQUIDITY),
           10,
           10,
@@ -687,7 +692,7 @@ describe('DXswapRelayer', () => {
       await dxRelayer.updateOracle(0)
     })
 
-    it('consumes 168339 to update the price oracle', async () => {
+    it('consumes 168250 to update the price oracle', async () => {
       await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -709,7 +714,7 @@ describe('DXswapRelayer', () => {
 
       let tx = await dxRelayer.updateOracle(0)
       let receipt = await provider.getTransactionReceipt(tx.hash)
-      expect(receipt.gasUsed).to.eq(bigNumberify('168339'))
+      expect(receipt.gasUsed).to.eq(bigNumberify('168250'))
     })
 
     it('provides the liquidity with the correct price based on uniswap price', async () => {

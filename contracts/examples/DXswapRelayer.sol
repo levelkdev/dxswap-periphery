@@ -46,7 +46,7 @@ contract DXswapRelayer {
 
     uint256 public immutable GAS_ORACLE_UPDATE = 168364;
     uint256 public immutable PARTS_PER_MILLION = 1000000;
-    uint256 public immutable BOUNTY = 0.01 ether; // To be decided
+    uint256 public immutable BOUNTY = 0.01 ether;
     uint8 public immutable PROVISION = 1;
     uint8 public immutable REMOVAL = 2;
     
@@ -99,12 +99,16 @@ contract DXswapRelayer {
         require(priceTolerance <= PARTS_PER_MILLION, 'DXswapRelayer: INVALID_TOLERANCE');
         require(block.timestamp <= deadline, 'DXswapRelayer: DEADLINE_REACHED');
         require(maxWindowTime > 30, 'DXswapRelayer: INVALID_WINDOWTIME');
-        
-        if (tokenA == address(0)) {
-            require(address(this).balance >= amountA, 'DXswapRelayer: INSUFFICIENT_ETH');
-        } else {
-            require(IERC20(tokenA).balanceOf(address(this)) >= amountA, 'DXswapRelayer: INSUFFICIENT_TOKEN_A');
+        require(tokenA != address(0), 'DXswapRelayer: ZERO_ADDRESS');
+
+        // Wrap native ETH if not already wrapped
+        if(tokenA == WETH && IERC20(tokenA).balanceOf(address(this)) < amountA){
+          IWETH(WETH).deposit{value: amountA}();
+        } else if (tokenB == WETH && IERC20(tokenB).balanceOf(address(this)) < amountB){
+          IWETH(WETH).deposit{value: amountB}();
         }
+        
+        require(IERC20(tokenA).balanceOf(address(this)) >= amountA, 'DXswapRelayer: INSUFFICIENT_TOKEN_A');
         require(IERC20(tokenB).balanceOf(address(this)) >= amountB, 'DXswapRelayer: INSUFFICIENT_TOKEN_B');
 
         address pair = _pair(tokenA, tokenB, factory);
@@ -162,6 +166,7 @@ contract DXswapRelayer {
         require(priceTolerance <= PARTS_PER_MILLION, 'DXswapRelayer: INVALID_TOLERANCE');
         require(block.timestamp <= deadline, 'DXswapRelayer: DEADLINE_REACHED');
         require(maxWindowTime > 30, 'DXswapRelayer: INVALID_WINDOWTIME');
+        require(tokenA != address(0), 'DXswapRelayer: ZERO_ADDRESS');
 
         address pair = _pair(tokenA, tokenB, factory);
         orderIndex = _OrderIndex();
@@ -183,7 +188,6 @@ contract DXswapRelayer {
             executed: false
         });
 
-        tokenA = tokenA == address(0) ? WETH : tokenA;
         address dxSwapPair = DXswapLibrary.pairFor(address(dxSwapFactory), tokenA, tokenB);
         (uint reserveA, uint reserveB,) = IDXswapPair(dxSwapPair).getReserves();
         uint256 windowTime = _consultOracleParameters(amountA, amountB, reserveA, reserveB, maxWindowTime);
@@ -203,7 +207,7 @@ contract DXswapRelayer {
         uint256 amountB;
         amountB = oracleCreator.consult(
           order.oracleId,
-          tokenA == address(0) ? IDXswapRouter(dxSwapRouter).WETH() : tokenA,
+          tokenA,
           order.amountA 
         );
         uint256 amountA = oracleCreator.consult(order.oracleId, tokenB, order.amountB);
@@ -263,12 +267,18 @@ contract DXswapRelayer {
         uint256 amountB = order.amountB;
         order.executed = true;
 
-        if (tokenA == address(0)) {
-            TransferHelper.safeTransferETH(owner, amountA);
+        if(tokenA == WETH){
+          IWETH(WETH).withdraw(amountA);
+          ETHWithdraw(amountA);
         } else {
-            TransferHelper.safeTransfer(tokenA, owner, amountA);
+          ERC20Withdraw(tokenA, amountA);
         }
-        TransferHelper.safeTransfer(tokenB, owner, amountB);
+        if (tokenB == WETH){
+          IWETH(WETH).withdraw(amountB);
+          ETHWithdraw(amountB);
+        } else {
+          ERC20Withdraw(tokenB, amountB);
+        }
         emit WithdrawnExpiredOrder(orderIndex);
     }
     
@@ -283,10 +293,6 @@ contract DXswapRelayer {
         uint256 amountA;
         uint256 amountB;
         uint256 liquidity;
-        if(_tokenA == address(0)){
-          IWETH(WETH).deposit{value: _amountA}();
-          _tokenA = WETH;
-        }
         TransferHelper.safeApprove(_tokenA, dxSwapRouter, _amountA);
         TransferHelper.safeApprove(_tokenB, dxSwapRouter, _amountB);
         (amountA, amountB, liquidity) = IDXswapRouter(dxSwapRouter).addLiquidity(
@@ -311,7 +317,6 @@ contract DXswapRelayer {
         uint256 _minA,
         uint256 _minB
     ) internal {
-        _tokenA = _tokenA == address(0) ? WETH : _tokenA;
         TransferHelper.safeApprove(_pair, dxSwapRouter, _liquidity);
         (uint amountA, uint amountB) = IDXswapRouter(dxSwapRouter).removeLiquidity(
             _tokenA,
@@ -368,7 +373,6 @@ contract DXswapRelayer {
     // Internal function to return the correct pair address on either DXswap or Uniswap
     function _pair(address tokenA, address tokenB, address factory) internal view returns (address pair) {
       require(factory == dxSwapFactory || factory == uniswapFactory, 'DXswapRelayer: INVALID_FACTORY');
-      if (tokenA == address(0)) tokenA = WETH;
       pair = IDXswapFactory(factory).getPair(tokenA, tokenB);
     }
 
