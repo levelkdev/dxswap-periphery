@@ -26,6 +26,10 @@ contract DXswapRelayer {
         uint256 indexed _orderIndex
     );
 
+    event ChangedOwner(
+        address payable indexed _newOwner
+    );
+
     struct Order {
         uint8 action; // 1=provision; 2=removal
         address tokenA;
@@ -204,13 +208,8 @@ contract DXswapRelayer {
 
         address tokenA = order.tokenA;
         address tokenB = order.tokenB;
-        uint256 amountB;
-        amountB = oracleCreator.consult(
-          order.oracleId,
-          tokenA,
-          order.amountA 
-        );
         uint256 amountA = oracleCreator.consult(order.oracleId, tokenB, order.amountB);
+        uint256 amountB = oracleCreator.consult(order.oracleId, tokenA, order.amountA);
         
         /* Maximize token inputs */ 
         if(amountA <= order.amountA){
@@ -402,6 +401,7 @@ contract DXswapRelayer {
     function changeOwner(address payable _newOwner) external {
       require(msg.sender == owner, 'DXswapRelayer: CALLER_NOT_OWNER');
       owner = _newOwner;
+      emit ChangedOwner(_newOwner);
     }
 
     receive() external payable {}
