@@ -26,6 +26,8 @@ contract DXswapRelayer {
         uint256 indexed _orderIndex
     );
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     struct Order {
         uint8 action; // 1=provision; 2=removal
         address tokenA;
@@ -50,7 +52,6 @@ contract DXswapRelayer {
     uint8 public immutable PROVISION = 1;
     uint8 public immutable REMOVAL = 2;
 
-    address payable public immutable owner;
     address public immutable dxSwapFactory;
     address public immutable dxSwapRouter;
     address public immutable uniswapFactory;
@@ -60,6 +61,7 @@ contract DXswapRelayer {
     OracleCreator oracleCreator;
     uint256 public orderCount;
     mapping(uint256 => Order) orders;
+    address payable public owner;
 
     constructor(
         address payable _owner,
@@ -386,6 +388,13 @@ contract DXswapRelayer {
     // Returns the data of one specific order
     function GetOrderDetails(uint256 orderIndex) external view returns (Order memory) {
       return orders[orderIndex];
+    }
+    
+    function transferOwnership(address payable _newOwner) external {
+        require(msg.sender == owner, "Ownable: caller is not the owner");
+        address _oldOwner = owner;
+        owner = _newOwner;
+        emit OwnershipTransferred(_oldOwner, _newOwner);
     }
 
     receive() external payable {}
