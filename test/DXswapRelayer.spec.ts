@@ -1,5 +1,5 @@
 import chai, { expect } from 'chai'
-import { Contract, utils } from 'ethers'
+import { constants, Contract, ethers, utils, Wallet } from 'ethers'
 import { AddressZero, MaxUint256 } from 'ethers/constants'
 import { BigNumber, bigNumberify, Interface } from 'ethers/utils'
 import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
@@ -763,5 +763,14 @@ describe('DXswapRelayer', () => {
 
       expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(bigNumberify('1988826815642458100'))
     }).retries(3)
+
+    it('should let the owner transfer ownership', async () => {
+      const oldOwner = await dxRelayer.owner()
+      const newOwner = token0.address
+      await expect(dxRelayer.transferOwnership(newOwner))
+        .to.emit(dxRelayer, 'OwnershipTransferred')
+        .withArgs(oldOwner, newOwner)
+      expect(await dxRelayer.owner()).to.be.equal(newOwner)
+    })
   })
 })
