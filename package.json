@@ -11,7 +11,8 @@
   },
   "files": [
     "build",
-    "contracts"
+    "contracts",
+    ".contracts.json"
   ],
   "dependencies": {
     "@swapr/core": "^0.3.11"
