@@ -8,7 +8,7 @@ import { ecsign } from 'ethereumjs-util'
 import { expandTo18Decimals, getApprovalDigest, mineBlock, MINIMUM_LIQUIDITY } from './shared/utilities'
 import { dxswapFixture } from './shared/fixtures'
 
-import IDXswapPair from 'dxswap-core/build/IDXswapPair.json'
+import IDXswapPair from '@swapr/core/build/IDXswapPair.json'
 import DeflatingERC20 from '../build/DeflatingERC20.json'
 
 chai.use(solidity)
