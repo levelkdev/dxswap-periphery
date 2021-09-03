@@ -1,6 +1,6 @@
 {
   "name": "@swapr/periphery",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "description": "Peripheral smart contracts for interacting with DXswap core contracts",
   "engines": {
     "node": ">=10"
