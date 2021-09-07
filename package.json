@@ -15,7 +15,7 @@
     ".contracts.json"
   ],
   "dependencies": {
-    "@swapr/core": "^0.3.14"
+    "@swapr/core": "^0.3.17"
   },
   "devDependencies": {
     "@types/chai": "^4.2.6",
