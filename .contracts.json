@@ -1,6 +1,6 @@
 {
   "rinkeby": {
-    "router": "0x0ee602c11858f99aa48c7c0093a2d5f68316f05a"
+    "router": "0x8DB401867458A7ec7b25eEEe6DEA26705237FCaF"
   },
   "mainnet": {
     "router": "0xb9960d9bca016e9748be75dd52f02188b9d0829f"
@@ -18,6 +18,6 @@
     "router": "0x530476d5583724A89c8841eB6Da76E7Af4C0F17E"
   },
   "arbitrumRinkebyTestnet": {
-    "router": "0x8EEaea23686c319133a7cC110b840d1591d9AeE0"
+    "router": "0xb5a35165047fed7440D3a75909c0949bf1943696"
   }
 }
