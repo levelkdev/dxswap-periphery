@@ -120,10 +120,10 @@
   resolved "https://registry.yarnpkg.com/@solidity-parser/parser/-/parser-0.6.2.tgz#49707fc4e06649d39d6b25bdab2e9093d372ce50"
   integrity sha512-kUVUvrqttndeprLoXjI5arWHeiP3uh4XODAKbG+ZaWHCVQeelxCbnXBeWxZ2BPHdXgH0xR9dU1b916JhDhbgAA==
 
-"@swapr/core@^0.3.11":
-  version "0.3.11"
-  resolved "https://registry.yarnpkg.com/@swapr/core/-/core-0.3.11.tgz#908fb6738b6a11d7dd25bfef3d6c5a704bfd3919"
-  integrity sha512-VGEH3rgdJzsBSWqgHp9CQhKgjNR73/3nXmRH+PFQ4yx/DWHE/GaaRevBxBrDt/ZjHV9AAZQKSlmLqb1MGAK6lw==
+"@swapr/core@^0.3.17":
+  version "0.3.17"
+  resolved "https://registry.yarnpkg.com/@swapr/core/-/core-0.3.17.tgz#fe9d230675e6cb333185a87deb70ac1642404006"
+  integrity sha512-2jBDMVT+LCf/sAtP5LvT6EgCVHYbK/5OR6wrcmZ4KiSg4QhX8C3jtFwd0bpRdjzZ9NsGP+v4bBCpH54AT2QYIQ==
   dependencies:
     typescript "^3.9.5"
 
