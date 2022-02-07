@@ -107,7 +107,7 @@ contract DXswapSwapRelayer {
 
         address pair = _pair(tokenA, tokenB, factory);
 
-        require(pair != address(0), 'DXswapRelayer: INVALID_POOL_ADDRESS');
+        require(pair != address(0), 'DXswapRelayer: INVALID_PAIR_ADDRESS');
 
         orderIndex = _OrderIndex();
         orders[orderIndex] = Order({

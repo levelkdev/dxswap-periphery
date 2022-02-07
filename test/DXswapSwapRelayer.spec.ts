@@ -39,28 +39,20 @@ describe('DXswapSwapRelayer', () => {
   let dxRelayer: Contract
   let owner: String
 
-  async function addLiquidity(amount0: BigNumber = defaultAmountALiquidity, amount1: BigNumber = defaultAmountBLiquidity) {
-    if (!amount0.isZero()) await token0.transfer(dxswapPair.address, amount0)
-    if (!amount1.isZero()) await token1.transfer(dxswapPair.address, amount1)
-    await dxswapPair.mint(dxRelayer.address, overrides)
-  }
-
-  async function addLiquidityUniswap(amount0: BigNumber = defaultAmountALiquidity, amount1: BigNumber = defaultAmountBLiquidity) {
-    if (!amount0.isZero()) await token0.transfer(uniPair.address, amount0)
-    if (!amount1.isZero()) await token1.transfer(uniPair.address, amount1)
-    await uniPair.mint(dxRelayer.address, overrides)
+  async function addLiquidityToPair(amount0: BigNumber = defaultAmountALiquidity, amount1: BigNumber = defaultAmountBLiquidity, pair: Contract) {
+    if (!amount0.isZero()) await token0.transfer(pair.address, amount0)
+    if (!amount1.isZero()) await token1.transfer(pair.address, amount1)
+    await pair.mint(dxRelayer.address, overrides)
   }
 
   const defaultAmountIn = expandTo18Decimals(2)
   const defaultAmountOut = 0
   const defaultAmountALiquidity = expandTo18Decimals(10)
   const defaultAmountBLiquidity = expandTo18Decimals(10)
-  const expectedLiquidity = expandTo18Decimals(2)
   const defaultPriceTolerance = 10000 // 1%
   const defaultMinReserve = expandTo18Decimals(2)
   const defaultMaxWindowTime = 300 // 5 Minutes
   const GAS_ORACLE_UPDATE = 168317;
-  const GAS_SWAP = 1979326544;
 
   beforeEach('deploy fixture', async function () {
     const fixture = await loadFixture(dxswapFixture)
@@ -242,10 +234,8 @@ describe('DXswapSwapRelayer', () => {
         )
       ).to.be.revertedWith('DXswapRelayer: INSUFFICIENT_ETH')
     })
-    it('requires existing pool address', async () => {
-      await weth.deposit({ ...overrides, value: expandTo18Decimals(800) })
-      await weth.transfer(wethPair.address, expandTo18Decimals(400))
-      await wethPartner.transfer(wethPair.address, expandTo18Decimals(400))
+    it('requires correct pair address', async () => {
+      await addLiquidityToPair(expandTo18Decimals(10), expandTo18Decimals(40), dxswapPair)
 
       await expect(
         dxRelayer.createSwapOrder(
@@ -261,7 +251,7 @@ describe('DXswapSwapRelayer', () => {
           dxswapFactory.address
         )
       )
-        .to.be.revertedWith('DXswapRelayer: INVALID_POOL_ADDRESS')
+        .to.be.revertedWith('DXswapRelayer: INVALID_PAIR_ADDRESS')
     })
   })
 
@@ -269,10 +259,10 @@ describe('DXswapSwapRelayer', () => {
     it('swap ERC20/ERC20 pair on Uniswap tokenA -> tokenB', async () => {
       const startBalance0 = await token0.balanceOf(dxRelayer.address)
       const startBalance1 = await token1.balanceOf(dxRelayer.address)
-      const liquidityToken0 = expandTo18Decimals(800)
-      const liquidityToken1 = expandTo18Decimals(800)
+      const liquidityToken0 = expandTo18Decimals(720)
+      const liquidityToken1 = expandTo18Decimals(941)
 
-      await addLiquidityUniswap(liquidityToken0, liquidityToken1)
+      await addLiquidityToPair(liquidityToken0, liquidityToken1, uniPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -314,10 +304,10 @@ describe('DXswapSwapRelayer', () => {
     it('swap ERC20/ERC20 pair on Uniswap tokenB -> tokenA', async () => {
       const startBalance0 = await token0.balanceOf(dxRelayer.address)
       const startBalance1 = await token1.balanceOf(dxRelayer.address)
-      const liquidityToken0 = expandTo18Decimals(800)
-      const liquidityToken1 = expandTo18Decimals(800)
+      const liquidityToken0 = expandTo18Decimals(720)
+      const liquidityToken1 = expandTo18Decimals(941)
 
-      await addLiquidityUniswap(liquidityToken0, liquidityToken1)
+      await addLiquidityToPair(liquidityToken0, liquidityToken1, uniPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -343,7 +333,7 @@ describe('DXswapSwapRelayer', () => {
       await mineBlock(provider, startTime + 700)
 
       const fee = await uniPair.swapFee();
-      const amountOut = await uniRouterUniFactory.getAmountOut(defaultAmountIn, liquidityToken0, liquidityToken1, fee)
+      const amountOut = await uniRouterUniFactory.getAmountOut(defaultAmountIn, liquidityToken1, liquidityToken0, fee)
 
       await expect(dxRelayer.executeOrder(0))
         .to.emit(uniPair, 'Swap')
@@ -362,7 +352,8 @@ describe('DXswapSwapRelayer', () => {
       const liquidityToken0 = expandTo18Decimals(400)
       const liquidityToken1 = expandTo18Decimals(800)
 
-      await addLiquidity(liquidityToken0, liquidityToken1)
+      await addLiquidityToPair(liquidityToken0, liquidityToken1, dxswapPair)
+
       await mineBlock(provider, startTime + 10)
       await expect(
         dxRelayer.createSwapOrder(
@@ -399,20 +390,21 @@ describe('DXswapSwapRelayer', () => {
       expect(await token1.balanceOf(dxRelayer.address)).to.eq(startBalance1.add(amountOut))
     })
 
-    it('swap ERC20/ERC20 DXswap with random price tokenB -> tokenA', async () => {
+    it('swap ERC20/ERC20 DXswap', async () => {
       const startBalance0 = await token0.balanceOf(dxRelayer.address)
       const startBalance1 = await token1.balanceOf(dxRelayer.address)
       const liquidityToken0 = expandTo18Decimals(577)
       const liquidityToken1 = expandTo18Decimals(808)
 
-      await addLiquidity(liquidityToken0, liquidityToken1)
+      await addLiquidityToPair(liquidityToken0, liquidityToken1, dxswapPair)
+
       await mineBlock(provider, startTime + 10)
       await expect(
         dxRelayer.createSwapOrder(
           token0.address,
           token1.address,
-          defaultAmountOut,
           defaultAmountIn,
+          defaultAmountOut,
           defaultPriceTolerance,
           defaultMinReserve,
           defaultMinReserve,
@@ -430,25 +422,25 @@ describe('DXswapSwapRelayer', () => {
       await mineBlock(provider, startTime + 700)
 
       const fee = await dxswapPair.swapFee()
-      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, liquidityToken1, liquidityToken0, fee)
+      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, liquidityToken0, liquidityToken1, fee)
 
       await expect(dxRelayer.executeOrder(0))
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
         .to.emit(dxswapPair, 'Swap')
-        .withArgs(dxswapRouter.address, 0, defaultAmountIn, amountOut, 0, dxRelayer.address)
+        .withArgs(dxswapRouter.address, defaultAmountIn, 0, 0, amountOut, dxRelayer.address)
 
-      expect(await token0.balanceOf(dxRelayer.address)).to.eq(startBalance0.add(amountOut))
-      expect(await token1.balanceOf(dxRelayer.address)).to.eq(startBalance1.sub(defaultAmountIn))
+      expect(await token0.balanceOf(dxRelayer.address)).to.eq(startBalance0.sub(defaultAmountIn))
+      expect(await token1.balanceOf(dxRelayer.address)).to.eq(startBalance1.add(amountOut))
     })
 
-    it('swap ERC20/ERC20 DXswap with price = 1 tokenB -> tokenA', async () => {
+    it('swap ERC20/ERC20 DXswap tokenB -> tokenA', async () => {
       const startBalance0 = await token0.balanceOf(dxRelayer.address)
       const startBalance1 = await token1.balanceOf(dxRelayer.address)
-      const liquidityToken0 = expandTo18Decimals(900)
-      const liquidityToken1 = expandTo18Decimals(900)
+      const liquidityToken0 = expandTo18Decimals(918)
+      const liquidityToken1 = expandTo18Decimals(842)
 
-      await addLiquidity(liquidityToken0, liquidityToken1)
+      await addLiquidityToPair(liquidityToken0, liquidityToken1, dxswapPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -474,7 +466,7 @@ describe('DXswapSwapRelayer', () => {
       await mineBlock(provider, startTime + 700)
 
       const fee = await dxswapPair.swapFee();
-      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, liquidityToken0, liquidityToken1, fee)
+      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, liquidityToken1, liquidityToken0, fee)
 
       await expect(dxRelayer.executeOrder(0))
         .to.emit(dxswapPair, 'Swap')
@@ -490,13 +482,13 @@ describe('DXswapSwapRelayer', () => {
     it('swap ETH/ERC20 DXswap', async () => {
       const liquidityToken0 = expandTo18Decimals(400)
       const liquidityToken1 = expandTo18Decimals(400)
+      const startBalance0 = await provider.getBalance(dxRelayer.address)
+      const startBalance1 = await wethPartner.balanceOf(dxRelayer.address)
 
       await weth.deposit({ ...overrides, value: expandTo18Decimals(800) })
       await weth.transfer(wethPair.address, liquidityToken0)
       await wethPartner.transfer(wethPair.address, liquidityToken1)
       await wethPair.mint(dxRelayer.address, overrides)
-      const startBalance0 = await provider.getBalance(dxRelayer.address)
-      const startBalance1 = await wethPartner.balanceOf(dxRelayer.address)
 
       await expect(
         dxRelayer.createSwapOrder(
@@ -537,16 +529,13 @@ describe('DXswapSwapRelayer', () => {
     it('swap ETH/ERC20 Uniswap', async () => {
       const liquidityToken0 = expandTo18Decimals(400)
       const liquidityToken1 = expandTo18Decimals(400)
+      const startBalance0 = await provider.getBalance(dxRelayer.address)
+      const startBalance1 = await wethPartner.balanceOf(dxRelayer.address)
 
       await weth.deposit({ ...overrides, value: expandTo18Decimals(800) })
       await weth.transfer(uniWethPair.address, liquidityToken0)
       await wethPartner.transfer(uniWethPair.address, liquidityToken1)
       await uniWethPair.mint(dxRelayer.address, overrides)
-
-      const startBalance0 = await provider.getBalance(dxRelayer.address)
-      const startBalance1 = await wethPartner.balanceOf(dxRelayer.address)
-
-      await addLiquidityUniswap(expandTo18Decimals(800), expandTo18Decimals(800))
 
       await expect(
         dxRelayer.createSwapOrder(
@@ -610,7 +599,8 @@ describe('DXswapSwapRelayer', () => {
     })
 
     it('updates price oracle', async () => {
-      await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
+      await addLiquidityToPair(expandTo18Decimals(10), expandTo18Decimals(40), dxswapPair)
+
       await expect(
         dxRelayer.createSwapOrder(
           token0.address,
@@ -635,7 +625,7 @@ describe('DXswapSwapRelayer', () => {
     })
 
     it('consumes 168317 to update the price oracle', async () => {
-      await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
+      await addLiquidityToPair(expandTo18Decimals(10), expandTo18Decimals(40), dxswapPair)
       await mineBlock(provider, startTime + 10)
       await expect(
         dxRelayer.createSwapOrder(
@@ -662,7 +652,7 @@ describe('DXswapSwapRelayer', () => {
 
   describe('Ownership and deadlines', () => {
     it('withdraws an order after expiration', async () => {
-      await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
+      await addLiquidityToPair(expandTo18Decimals(10), expandTo18Decimals(40), dxswapPair)
       const startBalance0 = await token0.balanceOf(owner)
       const startBalance1 = await token1.balanceOf(owner)
 
@@ -701,17 +691,16 @@ describe('DXswapSwapRelayer', () => {
       expect(await dxRelayer.owner()).to.be.equal(newOwner)
     })
 
-    it('require owner to transfer ownership', async () => {
+    it('requires owner to transfer ownership', async () => {
       const dxRelayerFromWallet2 = dxRelayer.connect(wallet2)
       const newOwner = token1.address
       await expect(dxRelayerFromWallet2.transferOwnership(newOwner))
         .to.be.revertedWith('Ownable: caller is not the owner')
     })
 
-    it('require oracle.update caller to be owner', async () => {
-      const dxRelayerFromWallet2 = dxRelayer.connect(wallet2)
+    it('requires oracle.update caller to be owner', async () => {
       const oracleCreatorFromWallet2 = oracleCreator.connect(wallet2)
-      await addLiquidityUniswap(expandTo18Decimals(800), expandTo18Decimals(800))
+      await addLiquidityToPair(expandTo18Decimals(800), expandTo18Decimals(800), uniPair)
 
       await mineBlock(provider, startTime + 10)
 
@@ -736,11 +725,11 @@ describe('DXswapSwapRelayer', () => {
         .to.be.revertedWith('OracleCreator: CALLER_NOT_OWNER')
     })
 
-    it('require oracle updater gets bounty', async () => {
+    it('requires oracle updater gets bounty', async () => {
       const dxRelayerFromWallet3 = dxRelayer.connect(wallet3)
       const startBalance = await provider.getBalance(wallet3.address)
 
-      await addLiquidityUniswap(expandTo18Decimals(800), expandTo18Decimals(800))
+      await addLiquidityToPair(expandTo18Decimals(800), expandTo18Decimals(800), uniPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -768,9 +757,9 @@ describe('DXswapSwapRelayer', () => {
       expect(await provider.getBalance(wallet3.address)).to.gt(startBalance)
     })
 
-    it('require observation finalized', async () => {
+    it('requires observation finalized', async () => {
       const dxRelayerFromWallet3 = dxRelayer.connect(wallet3)
-      await addLiquidityUniswap(expandTo18Decimals(800), expandTo18Decimals(800))
+      await addLiquidityToPair(expandTo18Decimals(800), expandTo18Decimals(800), uniPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -797,9 +786,9 @@ describe('DXswapSwapRelayer', () => {
         .to.be.revertedWith('DXswapRelayer: OBSERVATION_RUNNING')
     })
 
-    it('require observations < 2', async () => {
+    it('requires observations < 2', async () => {
       const dxRelayerFromWallet3 = dxRelayer.connect(wallet3)
-      await addLiquidityUniswap(expandTo18Decimals(800), expandTo18Decimals(800))
+      await addLiquidityToPair(expandTo18Decimals(800), expandTo18Decimals(800), uniPair)
 
       await mineBlock(provider, startTime + 10)
       await expect(
