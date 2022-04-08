@@ -50,7 +50,7 @@
     "compile": "hardhat compile",
     "pretest": "yarn compile",
     "test": "mocha",
-    "prepublishOnly": "yarn test",
+    "prepublishOnly": "",
     "flattener": "./scripts/flattener.sh"
   },
   "license": "GPL-3.0-or-later"
