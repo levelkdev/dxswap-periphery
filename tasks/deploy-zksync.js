@@ -1,7 +1,6 @@
 const { task } = require('hardhat/config')
 const { Deployer } = require('@matterlabs/hardhat-zksync-deploy')
 const { Wallet } = require('zksync-web3')
-const ethers = require('ethers')
 
 task('deploy-router-zksync', 'Deploys the whole contracts suite and optionally verifies source code on Etherscan')
   .addParam('factoryAddress', 'The factory address')

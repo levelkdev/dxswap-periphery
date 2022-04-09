@@ -6,3 +6,4 @@ contracts/.flattened
 artifacts
 artifacts-zk
 cache-zk
+cache

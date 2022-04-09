@@ -446,4 +446,12 @@ contract DXswapRouter is IDXswapRouter {
     {
         return DXswapLibrary.getAmountsIn(factory, amountOut, path);
     }
+
+    function pairFor(address tokenA, address tokenB) external view returns(address) {
+        return DXswapLibrary.pairFor(factory, tokenA, tokenB);
+    }
+    
+    function data(address tokenA, address tokenB) external view returns(bytes32, bytes32) {
+        return DXswapLibrary.data(tokenA, tokenB);
+    }
 }

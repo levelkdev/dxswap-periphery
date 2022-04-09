@@ -17,11 +17,11 @@ library DXswapLibrary {
     // calculates the CREATE2 address for a pair without making any external calls
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        pair = address(uint160(bytes20(keccak256(abi.encodePacked(
-            hex'ff',
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
+            bytes1(0xff),
             factory,
             keccak256(abi.encodePacked(token0, token1)),
-            hex'2c822a402e1993358440f1098c2ea2a18d1f37ded8ea7928a92fb063d377a5ae' // init code hash
+            bytes32(0x2c822a402e1993358440f1098c2ea2a18d1f37ded8ea7928a92fb063d377a5ae) // init code hash
         )))));
     }
 
@@ -84,5 +84,13 @@ library DXswapLibrary {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut, getSwapFee(factory, path[i - 1], path[i]));
         }
+    }
+
+    function data(address tokenA, address tokenB) internal view returns(bytes32, bytes32) {
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        return (
+            bytes32(0x2c822a402e1993358440f1098c2ea2a18d1f37ded8ea7928a92fb063d377a5ae),
+            keccak256(abi.encodePacked(token0, token1))
+        );
     }
 }
