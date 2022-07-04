@@ -1,5 +1,5 @@
 import { expandTo18Decimals } from './utilities'
-import { DXswapFactory, DXswapFactory__factory, DXswapPair, DXswapPair__factory, DXswapRelayer, DXswapRelayer__factory, DXswapRouter, DXswapRouter__factory, ERC20Mintable, ERC20Mintable__factory, OracleCreator, OracleCreator__factory, RouterEventEmitter, RouterEventEmitter__factory, WETH9, WETH9__factory, DeflatingERC20__factory, DeflatingERC20 } from './../../typechain'
+import { DXswapFactory, DXswapFactory__factory, DXswapPair, DXswapPair__factory, DXswapRelayer, DXswapRelayer__factory, DXswapRouter, DXswapRouter__factory, ERC20Mintable, ERC20Mintable__factory, OracleCreator, OracleCreator__factory, RouterEventEmitter, RouterEventEmitter__factory, WETH9, WETH9__factory, DeflatingERC20__factory, DeflatingERC20, DXswapTradeRelayer, DXswapTradeRelayer__factory, } from './../../typechain'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 interface DXswapFixture {
@@ -24,6 +24,7 @@ interface DXswapFixture {
   DTT2: DeflatingERC20
   DTTPair: DXswapPair
   WETHDTTPair: DXswapPair
+  dxTrade: DXswapTradeRelayer
 }
 
 export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFixture> {
@@ -97,6 +98,7 @@ export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFi
 
   // deploy Relayer and TradeRelayer
   const dxRelayer = await new DXswapRelayer__factory(wallet).deploy(wallet.address, dxswapFactory.address, dxswapRouter.address, uniFactory.address, uniRouter.address, WETH.address, oracleCreator.address)
+  const dxTrade = await new DXswapTradeRelayer__factory(wallet).deploy(wallet.address, dxswapFactory.address, dxswapRouter.address, uniFactory.address, uniRouter.address, WETH.address, oracleCreator.address)
 
   return {
     token0,
@@ -119,6 +121,7 @@ export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFi
     DTT,
     DTT2,
     DTTPair,
-    WETHDTTPair
+    WETHDTTPair,
+    dxTrade
   }
 }
