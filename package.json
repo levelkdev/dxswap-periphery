@@ -36,7 +36,7 @@
     "hardhat": "^2.9.5",
     "prettier": "^2.3.2",
     "prettier-plugin-solidity": "^1.0.0-beta.17",
-    "solc": "0.8.13",
+    "solc": "0.8.15",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "0.0.5",
     "solidity-coverage": "^0.7.20",
@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@metamask/eth-sig-util": "^4.0.0",
-    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts": "4.7.0",
     "@swapr/core": "^0.3.17",
     "apollo-fetch": "^0.7.0",
     "aws-sdk": "^2.980.0",

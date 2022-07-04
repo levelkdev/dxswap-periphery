@@ -13,24 +13,6 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.13",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-      {
-        version: "0.6.6",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-      {
         version: "0.5.16",
         settings: {
           optimizer: {
@@ -38,10 +20,8 @@ const config: HardhatUserConfig = {
             runs: 200,
           },
         },
-      }
-    ],
-    overrides: {
-      "contracts/libraries/DXswapLibrary.sol": {
+      },
+      {
         version: "0.6.6",
         settings: {
           optimizer: {
@@ -50,7 +30,7 @@ const config: HardhatUserConfig = {
           },
         },
       }
-    }
+    ]
   },
   paths: {
     artifacts: "build/artifacts",

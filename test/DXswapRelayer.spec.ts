@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 import { Address } from 'hardhat-deploy/dist/types'
 import { dxswapFixture } from './shared/fixtures'
 import { expandTo18Decimals, mineBlock, MINIMUM_LIQUIDITY } from './shared/utilities'
-import { DXswapFactory, DXswapPair, DXswapRelayer, DXswapRouter, ERC20Mintable, OracleCreator, WETH9 } from '../../typechain'
+import { DXswapFactory, DXswapPair, DXswapRelayer, DXswapRouter, ERC20Mintable, OracleCreator, WETH9 } from './../typechain'
 
 
 const { AddressZero } = constants

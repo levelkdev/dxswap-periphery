@@ -1,5 +1,5 @@
 import { expandTo18Decimals } from './utilities'
-import { DXswapFactory, DXswapFactory__factory, DXswapPair, DXswapPair__factory, DXswapRelayer, DXswapRelayer__factory, DXswapRouter, DXswapRouter__factory, ERC20Mintable, ERC20Mintable__factory, OracleCreator, OracleCreator__factory, RouterEventEmitter, RouterEventEmitter__factory, DXswapTradeRelayer, DXswapTradeRelayer__factory, WETH9, WETH9__factory, DeflatingERC20__factory, DeflatingERC20 } from '../../../typechain'
+import { DXswapFactory, DXswapFactory__factory, DXswapPair, DXswapPair__factory, DXswapRelayer, DXswapRelayer__factory, DXswapRouter, DXswapRouter__factory, ERC20Mintable, ERC20Mintable__factory, OracleCreator, OracleCreator__factory, RouterEventEmitter, RouterEventEmitter__factory, WETH9, WETH9__factory, DeflatingERC20__factory, DeflatingERC20 } from './../../typechain'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 interface DXswapFixture {
@@ -20,7 +20,6 @@ interface DXswapFixture {
   uniPair: DXswapPair
   oracleCreator: OracleCreator
   dxRelayer: DXswapRelayer
-  dxTrade: DXswapTradeRelayer
   DTT: DeflatingERC20
   DTT2: DeflatingERC20
   DTTPair: DXswapPair
@@ -30,20 +29,15 @@ interface DXswapFixture {
 export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFixture> {
 
   // deploy tokens
-  const tokenA = await new ERC20Mintable__factory(wallet).deploy('TokenA', 'AAA')
-  const tokenB = await new ERC20Mintable__factory(wallet).deploy('TokenB', 'BBB')
-  const tokenC = await new ERC20Mintable__factory(wallet).deploy('TokenC', 'CCC')
-  await tokenA.mint(wallet.address, expandTo18Decimals(10000))
-  await tokenB.mint(wallet.address, expandTo18Decimals(10000))
+  const tokenA = await new ERC20Mintable__factory(wallet).deploy(expandTo18Decimals(10000))
+  const tokenB = await new ERC20Mintable__factory(wallet).deploy(expandTo18Decimals(10000))
+  const tokenC = await new ERC20Mintable__factory(wallet).deploy(expandTo18Decimals(10000))
 
   const WETH = await new WETH9__factory(wallet).deploy()
-  const WETHPartner = await new ERC20Mintable__factory(wallet).deploy('WETHPartner', 'WETHP')
-  await WETHPartner.mint(wallet.address, expandTo18Decimals(10000))
+  const WETHPartner = await new ERC20Mintable__factory(wallet).deploy(expandTo18Decimals(10000))
 
   const DTT = await new DeflatingERC20__factory(wallet).deploy(expandTo18Decimals(10000))
   const DTT2 = await new DeflatingERC20__factory(wallet).deploy(expandTo18Decimals(10000))
-  await DTT.mint(wallet.address, expandTo18Decimals(10000))
-  await DTT2.mint(wallet.address, expandTo18Decimals(10000))
 
   // deploy DXswapFactory
   const dxswapFactory = await new DXswapFactory__factory(wallet).deploy(wallet.address)
@@ -103,7 +97,6 @@ export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFi
 
   // deploy Relayer and TradeRelayer
   const dxRelayer = await new DXswapRelayer__factory(wallet).deploy(wallet.address, dxswapFactory.address, dxswapRouter.address, uniFactory.address, uniRouter.address, WETH.address, oracleCreator.address)
-  const dxTrade = await new DXswapTradeRelayer__factory(wallet).deploy(wallet.address, dxswapFactory.address, dxswapRouter.address, uniFactory.address, uniRouter.address, WETH.address, oracleCreator.address)
 
   return {
     token0,
@@ -123,7 +116,6 @@ export async function dxswapFixture(wallet: SignerWithAddress): Promise<DXswapFi
     uniPair,
     oracleCreator,
     dxRelayer,
-    dxTrade,
     DTT,
     DTT2,
     DTTPair,

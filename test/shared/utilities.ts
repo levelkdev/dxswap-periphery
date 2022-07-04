@@ -1,6 +1,6 @@
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { defaultAbiCoder, keccak256, solidityPack, toUtf8Bytes } from 'ethers/lib/utils'
-import { DXswapPair } from '../../../typechain'
+import { DXswapPair } from './../../typechain'
 
 export const MINIMUM_LIQUIDITY = ethers.BigNumber.from(10).pow(3)
 

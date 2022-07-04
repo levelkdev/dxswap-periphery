@@ -6,7 +6,7 @@ import { constants, BigNumber, Wallet } from 'ethers'
 import { ecsign } from 'ethereumjs-util'
 import { dxswapFixture } from './shared/fixtures'
 import { expandTo18Decimals, getApprovalDigest, mineBlock, MINIMUM_LIQUIDITY } from './shared/utilities'
-import { DeflatingERC20, DeflatingERC20__factory, DXswapFactory, DXswapPair, DXswapRouter, ERC20Mintable, RouterEventEmitter, WETH9 } from '../../typechain'
+import { DeflatingERC20, DeflatingERC20__factory, DXswapFactory, DXswapPair, DXswapRouter, ERC20Mintable, RouterEventEmitter, WETH9 } from './../typechain'
 
 const { AddressZero, Zero, MaxUint256 } = constants
 
@@ -64,6 +64,7 @@ describe('DXswapRouter', () => {
   })
 
   it('factory, weth', async () => {
+    expect(await dxswapFactory.INIT_CODE_PAIR_HASH()).to.eq('0xd306a548755b9295ee49cc729e13ca4a45e00199bbd890fa146da43a50571776')
     expect(await dxswapRouter.factory()).to.eq(dxswapFactory.address)
     expect(await dxswapRouter.WETH()).to.eq(weth.address)
   })
@@ -1057,8 +1058,6 @@ describe('DxswapRouter: fee-on-transfer tokens: reloaded', () => {
 
     DTT = await new DeflatingERC20__factory(wallet).deploy(tokenTotalSupply)
     DTT2 = await new DeflatingERC20__factory(wallet).deploy(tokenTotalSupply)
-    await DTT.mint(wallet.address, expandTo18Decimals(10000))
-    await DTT2.mint(wallet.address, expandTo18Decimals(10000))
 
     // make a DTT<>weth dxswapPair
     await fixture.dxswapFactory.createPair(DTT.address, DTT2.address)
