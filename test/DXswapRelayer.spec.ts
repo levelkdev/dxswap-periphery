@@ -386,9 +386,9 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(AddressZero, dxRelayer.address, expectedLiquidity)
         .to.emit(wethPair, 'Sync')
-        .withArgs(defaultAmountB.add(expandTo18Decimals(40)), defaultAmountA.add(expandTo18Decimals(10)))
+        .withArgs(defaultAmountA.add(expandTo18Decimals(10)), defaultAmountB.add(expandTo18Decimals(40)))
         .to.emit(wethPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountB, defaultAmountA)
+        .withArgs(dxswapRouter.address, defaultAmountA, defaultAmountB)
 
       expect(await wethPair.balanceOf(dxRelayer.address)).to.eq(expectedLiquidity.add(liquidityBalance))
     })
@@ -702,7 +702,7 @@ describe('DXswapRelayer', () => {
       await dxRelayer.updateOracle(0)
     })
 
-    it('consumes 179030 gas to update the price oracle', async () => {
+    it('consumes 178639 gas to update the price oracle', async () => {
       await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -724,7 +724,7 @@ describe('DXswapRelayer', () => {
 
       let tx = await dxRelayer.updateOracle(0)
       let receipt = await provider.getTransactionReceipt(tx.hash)
-      expect(receipt.gasUsed).to.eq(ethers.BigNumber.from('179030'))
+      expect(receipt.gasUsed).to.eq(ethers.BigNumber.from('178639'))
     })
 
     it('reverts if token amount is insufficient based on uniswap price', async () => {

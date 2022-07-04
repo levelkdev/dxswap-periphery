@@ -64,7 +64,7 @@ describe('DXswapRouter', () => {
   })
 
   it('factory, weth', async () => {
-    expect(await dxswapFactory.INIT_CODE_PAIR_HASH()).to.eq('0xd306a548755b9295ee49cc729e13ca4a45e00199bbd890fa146da43a50571776')
+    expect(await dxswapFactory.INIT_CODE_PAIR_HASH()).to.eq('0xc30284a6e09f4f63686442b7046014b946fdb3e6c00d48b549eda87070a98167')
     expect(await dxswapRouter.factory()).to.eq(dxswapFactory.address)
     expect(await dxswapRouter.WETH()).to.eq(weth.address)
   })
@@ -455,7 +455,7 @@ describe('DXswapRouter', () => {
         overrides
       )
       const receipt = await tx.wait()
-      expect(receipt.gasUsed).to.eq(106572)
+      expect(receipt.gasUsed).to.eq(103507)
     }).retries(3)
   })
 
@@ -599,7 +599,7 @@ describe('DXswapRouter', () => {
         }
       )
       const receipt = await tx.wait()
-      expect(receipt.gasUsed).to.eq(109762)
+      expect(receipt.gasUsed).to.eq(106726)
     }).retries(3)
   })
 
