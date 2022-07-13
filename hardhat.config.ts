@@ -1,11 +1,13 @@
-import "@typechain/hardhat";
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-etherscan";
-import "hardhat-deploy";
-import "solidity-coverage";
-import { HardhatUserConfig } from "hardhat/types";
 import dotenv from "dotenv";
+import { HardhatUserConfig } from "hardhat/types";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-network-helpers";
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
+import "@typechain/hardhat";
+import "hardhat-deploy";
+import "hardhat-gas-reporter";
+import "solidity-coverage";
 
 dotenv.config();
 
@@ -62,6 +64,10 @@ const config: HardhatUserConfig = {
     deployer: 0,
     account1: 1,
     account2: 2,
+  },
+  gasReporter: {
+    enabled: true,
+    currency: "USD"
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_KEY,
