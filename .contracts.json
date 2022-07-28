@@ -19,5 +19,8 @@
   },
   "arbitrumRinkebyTestnet": {
     "router": "0xb5a35165047fed7440D3a75909c0949bf1943696"
+  },
+  "arbitrumGoerliTestnet": {
+    "router": "0xe82c4D8b993D613a28600B953e91A3A93Ae69Fd6"
   }
 }
