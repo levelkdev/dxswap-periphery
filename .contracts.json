@@ -22,5 +22,8 @@
   },
   "arbitrumGoerliTestnet": {
     "router": "0xe82c4D8b993D613a28600B953e91A3A93Ae69Fd6"
+  },
+  "goerli": {
+    "router": "0x7AEE640f8085B2Dee7e1B146F5802800a9b53d03"
   }
 }
