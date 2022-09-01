@@ -6,3 +6,5 @@ typechain/
 .openzeppelin/.session
 .env
 .vscode
+coverage/
+coverage.json
