@@ -5,12 +5,15 @@ import "@nomicfoundation/hardhat-network-helpers";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
+import "hardhat-dependency-compiler"
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "hardhat-dependency-compiler"
 
 dotenv.config();
+
+const infuraKey = process.env.INFURA_KEY;
+const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [];
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -53,6 +56,24 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       gasPrice: 20000000000 //20 Gwei,
     },
+    mainnet: {
+      live: true,
+      saveDeployments: true,
+      url: `https://mainnet.infura.io/v3/${infuraKey}`,
+      accounts,
+    },
+    gnosis: {
+      live: true,
+      saveDeployments: true,
+      url: "https://rpc.gnosischain.com/",
+      accounts,
+    },
+    rinkeby: {
+      live: false,
+      saveDeployments: true,
+      url: `https://rinkeby.infura.io/v3/${infuraKey}`,
+      accounts,
+  },
   },
   typechain: {
     outDir: "typechain",
