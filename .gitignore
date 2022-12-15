@@ -1,5 +1,11 @@
 build/
 node_modules/
 contracts/.flattened
+deployments/
+typechain/
 .openzeppelin/.session
 .env
+.vscode
+coverage/
+coverage.json
+bundle/
