@@ -303,9 +303,9 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(AddressZero, dxRelayer.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
         .to.emit(wethPair, 'Sync')
-        .withArgs(defaultAmountB, defaultAmountA)
+        .withArgs(defaultAmountA, defaultAmountB)
         .to.emit(wethPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountB, defaultAmountA)
+        .withArgs(dxswapRouter.address, defaultAmountA, defaultAmountB)
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
 
