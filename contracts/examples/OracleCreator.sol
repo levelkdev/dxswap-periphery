@@ -1,4 +1,4 @@
-pragma solidity =0.6.6;
+pragma solidity >=0.6.6;
 pragma experimental ABIEncoderV2;
 
 import './../libraries/TransferHelper.sol';
@@ -10,13 +10,9 @@ contract OracleCreator {
     using FixedPoint for *;
     using SafeMath for uint256;
 
-    event OracleCreated(
-        uint256 indexed _oracleIndex,
-        address indexed _pair,
-        uint256 _windowTime
-    );
+    event OracleCreated(uint256 indexed _oracleIndex, address indexed _pair, uint256 _windowTime);
 
-    struct Oracle{
+    struct Oracle {
         uint256 windowTime;
         address token0;
         address token1;
@@ -33,14 +29,11 @@ contract OracleCreator {
     mapping(uint256 => Oracle) public oracles;
     uint256 public oraclesIndex;
 
-    function createOracle(
-        uint256 windowTime,
-        address pair
-    ) public returns (uint256 oracleId) {
+    function createOracle(uint256 windowTime, address pair) public returns (uint256 oracleId) {
         IDXswapPair sourcePair = IDXswapPair(pair);
         address token0 = sourcePair.token0();
         address token1 = sourcePair.token1();
-        (,, uint32 blockTimestampLast) =  sourcePair.getReserves();
+        (, , uint32 blockTimestampLast) = sourcePair.getReserves();
 
         oracles[oraclesIndex] = Oracle({
             windowTime: windowTime,
@@ -64,23 +57,20 @@ contract OracleCreator {
         Oracle storage oracle = oracles[oracleIndex];
         require(msg.sender == oracle.owner, 'OracleCreator: CALLER_NOT_OWNER');
         require(oracle.observationsCount < 2, 'OracleCreator: FINISHED_OBERSERVATION');
-        (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
-            DXswapOracleLibrary.currentCumulativePrices(address(oracle.pair));
+        (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) = DXswapOracleLibrary
+            .currentCumulativePrices(address(oracle.pair));
         uint32 timeElapsed = blockTimestamp - oracle.blockTimestampLast; // overflow is desired
 
-        // first update can be executed immediately. Ensure that at least one full period has passed since the first update 
-        require(
-          oracle.observationsCount == 0 || timeElapsed >= oracle.windowTime, 
-          'OracleCreator: PERIOD_NOT_ELAPSED'
-        );
+        // first update can be executed immediately. Ensure that at least one full period has passed since the first update
+        require(oracle.observationsCount == 0 || timeElapsed >= oracle.windowTime, 'OracleCreator: PERIOD_NOT_ELAPSED');
 
         // overflow is desired, casting never truncates
         // cumulative price is in (uq112x112 price * seconds) units so we simply wrap it after division by time elapsed
         oracle.price0Average = FixedPoint.uq112x112(
-          uint224((price0Cumulative - oracle.price0CumulativeLast) / timeElapsed)
+            uint224((price0Cumulative - oracle.price0CumulativeLast) / timeElapsed)
         );
         oracle.price1Average = FixedPoint.uq112x112(
-          uint224((price1Cumulative - oracle.price1CumulativeLast) / timeElapsed)
+            uint224((price1Cumulative - oracle.price1CumulativeLast) / timeElapsed)
         );
 
         oracle.price0CumulativeLast = price0Cumulative;
@@ -93,21 +83,20 @@ contract OracleCreator {
     function consult(uint256 oracleIndex, address token, uint256 amountIn) external view returns (uint256 amountOut) {
         Oracle storage oracle = oracles[oracleIndex];
         FixedPoint.uq112x112 memory avg;
-        if (token == oracle.token0) { 
-          avg = oracle.price0Average;
+        if (token == oracle.token0) {
+            avg = oracle.price0Average;
         } else {
-          require(token == oracle.token1, 'OracleCreator: INVALID_TOKEN'); 
-          avg = oracle.price1Average;
+            require(token == oracle.token1, 'OracleCreator: INVALID_TOKEN');
+            avg = oracle.price1Average;
         }
         amountOut = avg.mul(amountIn).decode144();
     }
 
-    function isOracleFinalized(uint256 oracleIndex) external view returns (bool){
+    function isOracleFinalized(uint256 oracleIndex) external view returns (bool) {
         return oracles[oracleIndex].observationsCount == 2;
     }
 
     function getOracleDetails(uint256 oracleIndex) external view returns (Oracle memory) {
-      return oracles[oracleIndex];
+        return oracles[oracleIndex];
     }
-
 }

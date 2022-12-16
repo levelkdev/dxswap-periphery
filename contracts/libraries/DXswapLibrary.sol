@@ -2,7 +2,7 @@ pragma solidity >=0.5.0;
 
 import '@swapr/core/contracts/interfaces/IDXswapPair.sol';
 
-import "./SafeMath.sol";
+import './SafeMath.sol';
 
 library DXswapLibrary {
     using SafeMath for uint;
@@ -17,24 +17,36 @@ library DXswapLibrary {
     // calculates the CREATE2 address for a pair without making any external calls
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        pair = address(uint(keccak256(abi.encodePacked(
-            hex'ff',
-            factory,
-            keccak256(abi.encodePacked(token0, token1)),
-            hex'c30284a6e09f4f63686442b7046014b946fdb3e6c00d48b549eda87070a98167' // init code hash
-        ))));
+        pair = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex'ff',
+                            factory,
+                            keccak256(abi.encodePacked(token0, token1)),
+                            hex'c30284a6e09f4f63686442b7046014b946fdb3e6c00d48b549eda87070a98167' // init code hash
+                        )
+                    )
+                )
+            )
+        );
     }
 
     // fetches and sorts the reserves for a pair
-    function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
-        (address token0,) = sortTokens(tokenA, tokenB);
-        (uint reserve0, uint reserve1,) = IDXswapPair(pairFor(factory, tokenA, tokenB)).getReserves();
+    function getReserves(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) internal view returns (uint reserveA, uint reserveB) {
+        (address token0, ) = sortTokens(tokenA, tokenB);
+        (uint reserve0, uint reserve1, ) = IDXswapPair(pairFor(factory, tokenA, tokenB)).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
-    
+
     // fetches and sorts the reserves for a pair
     function getSwapFee(address factory, address tokenA, address tokenB) internal view returns (uint swapFee) {
-        (address token0,) = sortTokens(tokenA, tokenB);
+        (address token0, ) = sortTokens(tokenA, tokenB);
         swapFee = IDXswapPair(pairFor(factory, tokenA, tokenB)).swapFee();
     }
 
@@ -46,7 +58,12 @@ library DXswapLibrary {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut, uint swapFee) internal pure returns (uint amountOut) {
+    function getAmountOut(
+        uint amountIn,
+        uint reserveIn,
+        uint reserveOut,
+        uint swapFee
+    ) internal pure returns (uint amountOut) {
         require(amountIn > 0, 'DXswapLibrary: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'DXswapLibrary: INSUFFICIENT_LIQUIDITY');
         uint amountInWithFee = amountIn.mul(uint(10000).sub(swapFee));
@@ -56,7 +73,12 @@ library DXswapLibrary {
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut, uint swapFee) internal pure returns (uint amountIn) {
+    function getAmountIn(
+        uint amountOut,
+        uint reserveIn,
+        uint reserveOut,
+        uint swapFee
+    ) internal pure returns (uint amountIn) {
         require(amountOut > 0, 'DXswapLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'DXswapLibrary: INSUFFICIENT_LIQUIDITY');
         uint numerator = reserveIn.mul(amountOut).mul(10000);
@@ -65,7 +87,11 @@ library DXswapLibrary {
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
+    function getAmountsOut(
+        address factory,
+        uint amountIn,
+        address[] memory path
+    ) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'DXswapLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
@@ -76,7 +102,11 @@ library DXswapLibrary {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, uint amountOut, address[] memory path) internal view returns (uint[] memory amounts) {
+    function getAmountsIn(
+        address factory,
+        uint amountOut,
+        address[] memory path
+    ) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'DXswapLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[amounts.length - 1] = amountOut;

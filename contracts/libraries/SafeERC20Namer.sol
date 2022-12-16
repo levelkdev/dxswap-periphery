@@ -5,11 +5,11 @@ import './AddressStringUtil.sol';
 // produces token descriptors from inconsistent or absent ERC20 symbol implementations that can return string or bytes32
 // this library will always produce a string symbol to represent the token
 library SafeERC20Namer {
-    function bytes32ToString(bytes32 x) pure private returns (string memory) {
+    function bytes32ToString(bytes32 x) private pure returns (string memory) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char = x[j];
+            bytes1 char = x[j];
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;
@@ -23,7 +23,7 @@ library SafeERC20Namer {
     }
 
     // assumes the data is in position 2
-    function parseStringData(bytes memory b) pure private returns (string memory) {
+    function parseStringData(bytes memory b) private pure returns (string memory) {
         uint charCount = 0;
         // first parse the charCount out of the data
         for (uint i = 32; i < 64; i++) {
@@ -41,22 +41,22 @@ library SafeERC20Namer {
 
     // uses a heuristic to produce a token name from the address
     // the heuristic returns the full hex of the address string in upper case
-    function addressToName(address token) pure private returns (string memory) {
+    function addressToName(address token) private pure returns (string memory) {
         return AddressStringUtil.toAsciiString(token, 40);
     }
 
     // uses a heuristic to produce a token symbol from the address
     // the heuristic returns the first 6 hex of the address string in upper case
-    function addressToSymbol(address token) pure private returns (string memory) {
+    function addressToSymbol(address token) private pure returns (string memory) {
         return AddressStringUtil.toAsciiString(token, 6);
     }
 
     // calls an external view token contract method that returns a symbol or name, and parses the output into a string
-    function callAndParseStringReturn(address token, bytes4 selector) view private returns (string memory) {
+    function callAndParseStringReturn(address token, bytes4 selector) private view returns (string memory) {
         (bool success, bytes memory data) = token.staticcall(abi.encodeWithSelector(selector));
         // if not implemented, or returns empty data, return empty string
         if (!success || data.length == 0) {
-            return "";
+            return '';
         }
         // bytes32 data always has length 32
         if (data.length == 32) {
@@ -65,7 +65,7 @@ library SafeERC20Namer {
         } else if (data.length > 64) {
             return abi.decode(data, (string));
         }
-        return "";
+        return '';
     }
 
     // attempts to extract the token symbol. if it does not implement symbol, returns a symbol derived from the address
