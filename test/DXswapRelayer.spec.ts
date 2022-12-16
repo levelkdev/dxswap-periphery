@@ -1,42 +1,37 @@
-import chai, { expect } from 'chai'
-import { constants, Contract, ethers, utils, Wallet } from 'ethers'
-import { AddressZero, MaxUint256 } from 'ethers/constants'
-import { BigNumber, bigNumberify, Interface } from 'ethers/utils'
-import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
-
-import { expandTo18Decimals, mineBlock, MINIMUM_LIQUIDITY } from './shared/utilities'
+import "@nomiclabs/hardhat-ethers";
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { constants, utils, BigNumber } from 'ethers'
+import { ethers } from "hardhat";
+import { Address } from 'hardhat-deploy/dist/types'
 import { dxswapFixture } from './shared/fixtures'
+import { expandTo18Decimals, mineBlock, MINIMUM_LIQUIDITY } from './shared/utilities'
+import { DXswapFactory, DXswapPair, DXswapRelayer, DXswapRouter, ERC20Mintable, OracleCreator, WETH9 } from './../typechain'
 
-chai.use(solidity)
+
+const { AddressZero } = constants
 
 const overrides = {
-  gasLimit: 9999999
+  gasLimit: 14999999
 }
 
 describe('DXswapRelayer', () => {
-  const provider = new MockProvider({
-    hardfork: 'istanbul',
-    mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-    gasLimit: 9999999
-  })
-  const [wallet, wallet2] = provider.getWallets()
-  const loadFixture = createFixtureLoader(provider, [wallet])
+  let token0: ERC20Mintable
+  let token1: ERC20Mintable
+  let weth: WETH9
+  let wethPartner: ERC20Mintable
+  let wethPair: DXswapPair
+  let dxswapPair: DXswapPair
+  let dxswapFactory: DXswapFactory
+  let dxswapRouter: DXswapRouter
+  let uniPair: DXswapPair
+  let uniFactory: DXswapFactory
+  let oracleCreator: OracleCreator
+  let dxRelayer: DXswapRelayer
+  let owner: Address
 
-  let token0: Contract
-  let token1: Contract
-  let weth: Contract
-  let wethPartner: Contract
-  let wethPair: Contract
-  let dxswapPair: Contract
-  let dxswapFactory: Contract
-  let dxswapRouter: Contract
-  let uniPair: Contract
-  let uniFactory: Contract
-  let uniRouter: Contract
-  let oracleCreator: Contract
-  let dxRelayer: Contract
-  let tokenPair: Contract
-  let owner: String
+  let wallet: SignerWithAddress
+  let wallet2: SignerWithAddress
 
   async function addLiquidity(amount0: BigNumber = defaultAmountA, amount1: BigNumber = defaultAmountB) {
     if (!amount0.isZero()) await token0.transfer(dxswapPair.address, amount0)
@@ -51,19 +46,36 @@ describe('DXswapRelayer', () => {
   const defaultMinReserve = expandTo18Decimals(2)
   const defaultMaxWindowTime = 300 // 5 Minutes
 
-  beforeEach('deploy fixture', async function() {
-    const fixture = await loadFixture(dxswapFixture)
+  const provider = ethers.provider
+
+  // 1/1/2020 @ 12:00 am UTC
+  // cannot be 0 because that instructs ganache to set it to current timestamp
+  // cannot be 86400 because then timestamp 0 is a valid historical observation
+  let startTime = 1893499200
+  let defaultDeadline = startTime + 86400 // 24 hours
+
+  // must come before adding liquidity to pairs for correct cumulative price computations
+  // cannot use 0 because that resets to current timestamp
+  // beforeEach(`set start time to ${startTime}`, async () => await mineBlock(provider, startTime))
+
+  beforeEach('assign wallets', async function () {
+    const signers = await ethers.getSigners()
+    wallet = signers[0]
+    wallet2 = signers[1]
+  })
+
+  beforeEach('deploy fixture', async function () {
+    const fixture = await dxswapFixture(wallet)
     token0 = fixture.token0
     token1 = fixture.token1
     weth = fixture.WETH
-    wethPartner = fixture.WETHPartner
+    dxswapPair = fixture.dxswapPair
     wethPair = fixture.WETHPair
-    dxswapPair = fixture.pair
+    wethPartner = fixture.WETHPartner
     dxswapFactory = fixture.dxswapFactory
     dxswapRouter = fixture.dxswapRouter
     uniPair = fixture.uniPair
     uniFactory = fixture.uniFactory
-    uniRouter = fixture.uniRouter
     oracleCreator = fixture.oracleCreator
     dxRelayer = fixture.dxRelayer
   })
@@ -74,22 +86,23 @@ describe('DXswapRelayer', () => {
     await wethPartner.transfer(dxRelayer.address, expandTo18Decimals(999))
     await wallet.sendTransaction({
       to: dxRelayer.address,
-      value: utils.parseEther('999')
+      value: utils.parseEther('9')
     })
     owner = await dxRelayer.owner()
   })
 
-  // 1/1/2020 @ 12:00 am UTC
-  // cannot be 0 because that instructs ganache to set it to current timestamp
-  // cannot be 86400 because then timestamp 0 is a valid historical observation
-  const startTime = 1577836800
-  const defaultDeadline = 1577836800 + 86400 // 24 hours
+  beforeEach('set timestamp', async () => {
+    const lastTime = (await provider.getBlock("latest")).timestamp;
+    startTime = lastTime;
+    defaultDeadline = startTime + 86400
+  })
 
-  // must come before adding liquidity to pairs for correct cumulative price computations
-  // cannot use 0 because that resets to current timestamp
-  beforeEach(`set start time to ${startTime}`, () => mineBlock(provider, startTime))
 
   describe('Liquidity provision', () => {
+    it('INIT_CODE_PAIR_HASH', async () => {
+      expect(await dxswapFactory.INIT_CODE_PAIR_HASH()).to.eq('0xc30284a6e09f4f63686442b7046014b946fdb3e6c00d48b549eda87070a98167')
+    })
+
     it('requires correct order input', async () => {
       await expect(
         dxRelayer.orderLiquidityProvision(
@@ -370,6 +383,7 @@ describe('DXswapRelayer', () => {
       await mineBlock(provider, startTime + 350)
       await dxRelayer.updateOracle(0)
       await mineBlock(provider, startTime + 700)
+
       await expect(dxRelayer.executeOrder(0))
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
@@ -558,7 +572,7 @@ describe('DXswapRelayer', () => {
       await mineBlock(provider, startTime + 350)
       await dxRelayer.updateOracle(0)
       await mineBlock(provider, startTime + 700)
-      await expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(4).sub(MINIMUM_LIQUIDITY))
+      expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(4).sub(MINIMUM_LIQUIDITY))
 
       await expect(dxRelayer.executeOrder(0))
         .to.emit(dxRelayer, 'ExecutedOrder')
@@ -581,13 +595,14 @@ describe('DXswapRelayer', () => {
           dxRelayer.address
         )
 
-      await expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(2))
+      expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(2))
     })
 
     it('removes liquidity with ETH/ERC20 pair after price observation', async () => {
       await weth.deposit({ ...overrides, value: expandTo18Decimals(10) })
       await weth.transfer(wethPair.address, expandTo18Decimals(10))
       await wethPartner.transfer(wethPair.address, expandTo18Decimals(40))
+
       await wethPair.mint(dxRelayer.address)
       await mineBlock(provider, startTime + 100)
 
@@ -614,7 +629,11 @@ describe('DXswapRelayer', () => {
       await dxRelayer.updateOracle(0)
       await mineBlock(provider, startTime + 700)
 
-      expect(await wethPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(20).sub(1000))
+      expect(await wethPair.balanceOf(dxRelayer.address)).to.eq(expandTo18Decimals(20).sub(MINIMUM_LIQUIDITY))
+
+      const wethAmount = expandTo18Decimals(1).sub(500)
+      const wethPartnerAmount = expandTo18Decimals(4).sub(2000)
+
       await expect(dxRelayer.executeOrder(0))
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
@@ -623,16 +642,19 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(wethPair.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
         .to.emit(wethPartner, 'Transfer')
-        .withArgs(wethPair.address, dxRelayer.address, expandTo18Decimals(4).sub(2000))
+        .withArgs(wethPair.address, dxRelayer.address, wethPartnerAmount)
         .to.emit(weth, 'Transfer')
-        .withArgs(wethPair.address, dxRelayer.address, expandTo18Decimals(1).sub(500))
+        .withArgs(wethPair.address, dxRelayer.address, wethAmount)
         .to.emit(wethPair, 'Sync')
-        .withArgs(expandTo18Decimals(36).add(2000), expandTo18Decimals(9).add(500))
+        .withArgs( 
+          weth.address === await wethPair.token0() ? expandTo18Decimals(9).add(500) :  expandTo18Decimals(36).add(2000),
+          wethPartner.address === await wethPair.token1() ?  expandTo18Decimals(36).add(2000) : expandTo18Decimals(9).add(500)
+        )
         .to.emit(wethPair, 'Burn')
         .withArgs(
           dxswapRouter.address,
-          expandTo18Decimals(4).sub(2000),
-          expandTo18Decimals(1).sub(500),
+          weth.address === await wethPair.token0() ? wethAmount : wethPartnerAmount,
+          wethPartner.address === await wethPair.token1() ? wethPartnerAmount : wethAmount,
           dxRelayer.address
         )
 
@@ -640,7 +662,7 @@ describe('DXswapRelayer', () => {
     })
   })
 
-  describe('Oracle price calulation', () => {
+  describe('Oracle price calculation', () => {
     it('reverts oracle update if minReserve is not reached', async () => {
       await expect(
         dxRelayer.orderLiquidityProvision(
@@ -687,7 +709,7 @@ describe('DXswapRelayer', () => {
       await dxRelayer.updateOracle(0)
     })
 
-    it('consumes 168339 to update the price oracle', async () => {
+    it('consumes 179154 gas to update the price oracle', async () => {
       await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -709,10 +731,10 @@ describe('DXswapRelayer', () => {
 
       let tx = await dxRelayer.updateOracle(0)
       let receipt = await provider.getTransactionReceipt(tx.hash)
-      expect(receipt.gasUsed).to.eq(bigNumberify('168339'))
+      expect(receipt.gasUsed).to.eq(ethers.BigNumber.from('179154'))
     })
 
-    it('provides the liquidity with the correct price based on uniswap price', async () => {
+    it('reverts if token amount is insufficient based on uniswap price', async () => {
       let timestamp = startTime
 
       /* DXswap price of 1:4 */
@@ -731,8 +753,8 @@ describe('DXswapRelayer', () => {
         dxRelayer.orderLiquidityProvision(
           token0.address,
           token1.address,
-          defaultAmountA,
-          defaultAmountB,
+          expandTo18Decimals(10),
+          expandTo18Decimals(40),
           defaultPriceTolerance,
           defaultMinReserve,
           defaultMinReserve,
@@ -754,15 +776,70 @@ describe('DXswapRelayer', () => {
       await mineBlock(provider, (timestamp += 150))
       await dxRelayer.updateOracle(0)
 
-      // Uniswap price should be more then four
-      expect(await oracleCreator.consult(0, token0.address, 100)).to.eq(451)
+      // Uniswap price should be more than four and less than five
+      expect(await oracleCreator.consult(0, token0.address, 100, overrides)).to.eq(448)
 
-      await expect(dxRelayer.executeOrder(0))
+      await expect(dxRelayer.executeOrder(0, overrides))
+        .to.emit(dxRelayer, 'ExecutedOrder')
+        .withArgs(0)
+        .to.be.revertedWith('DXswapRouter: INSUFFICIENT_B_AMOUNT')
+    })
+
+    it('provides the liquidity with the correct price based on uniswap price', async () => {
+      let timestamp = startTime
+      const token0AmountLP = expandTo18Decimals(10)
+      const token1AmountLP = expandTo18Decimals(36)
+
+      /* DXswap price of 1:4 */
+      await token0.transfer(dxswapPair.address, expandTo18Decimals(100))
+      await token1.transfer(dxswapPair.address, expandTo18Decimals(400))
+      await dxswapPair.mint(wallet.address, overrides)
+      await mineBlock(provider, (timestamp += 100))
+
+      /* Uniswap starting price of 1:2 */
+      await token0.transfer(uniPair.address, expandTo18Decimals(100))
+      await token1.transfer(uniPair.address, expandTo18Decimals(200))
+      await uniPair.mint(wallet.address, overrides)
+      await mineBlock(provider, (timestamp += 100))
+
+      await expect(
+        dxRelayer.orderLiquidityProvision(
+          token0.address,
+          token1.address,
+          token0AmountLP,
+          token1AmountLP,
+          defaultPriceTolerance,
+          defaultMinReserve,
+          defaultMinReserve,
+          defaultMaxWindowTime,
+          defaultDeadline,
+          uniFactory.address
+        )
+      )
+        .to.emit(dxRelayer, 'NewOrder')
+        .withArgs(0, 1)
+
+      await dxRelayer.updateOracle(0)
+      await mineBlock(provider, (timestamp += 30))
+
+      // Uniswap move price ratio to 1:5
+      await token0.transfer(uniPair.address, expandTo18Decimals(200))
+      await token1.transfer(uniPair.address, expandTo18Decimals(1300))
+      await uniPair.mint(wallet.address, overrides)
+      await mineBlock(provider, (timestamp += 150))
+      await dxRelayer.updateOracle(0)
+
+      // Uniswap price should be more than four and less than five
+      expect(await oracleCreator.consult(0, token0.address, 100, overrides)).to.eq(448)
+
+      await expect(dxRelayer.executeOrder(0, overrides))
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
 
-      expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(bigNumberify('1988826815642458100'))
-    }).retries(3)
+      // Uniswap price is the same
+      expect(await oracleCreator.consult(0, token0.address, 100, overrides)).to.eq(448)
+      expect(await dxswapPair.balanceOf(dxRelayer.address)).to.eq(ethers.BigNumber.from(('18000000000000000000')))
+    })
 
     it('should let the owner transfer ownership', async () => {
       const oldOwner = await dxRelayer.owner()
