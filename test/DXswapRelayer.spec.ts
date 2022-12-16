@@ -99,6 +99,10 @@ describe('DXswapRelayer', () => {
 
 
   describe('Liquidity provision', () => {
+    it('INIT_CODE_PAIR_HASH', async () => {
+      expect(await dxswapFactory.INIT_CODE_PAIR_HASH()).to.eq('0xc30284a6e09f4f63686442b7046014b946fdb3e6c00d48b549eda87070a98167')
+    })
+
     it('requires correct order input', async () => {
       await expect(
         dxRelayer.orderLiquidityProvision(
@@ -303,9 +307,9 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(AddressZero, dxRelayer.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
         .to.emit(wethPair, 'Sync')
-        .withArgs(defaultAmountA, defaultAmountB)
+        .withArgs(defaultAmountB, defaultAmountA)
         .to.emit(wethPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountA, defaultAmountB)
+        .withArgs(dxswapRouter.address, defaultAmountB, defaultAmountA)
         .to.emit(dxRelayer, 'ExecutedOrder')
         .withArgs(0)
 
@@ -386,9 +390,9 @@ describe('DXswapRelayer', () => {
         .to.emit(wethPair, 'Transfer')
         .withArgs(AddressZero, dxRelayer.address, expectedLiquidity)
         .to.emit(wethPair, 'Sync')
-        .withArgs(defaultAmountA.add(expandTo18Decimals(10)), defaultAmountB.add(expandTo18Decimals(40)))
+        .withArgs(defaultAmountB.add(expandTo18Decimals(40)), defaultAmountA.add(expandTo18Decimals(10)))
         .to.emit(wethPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountA, defaultAmountB)
+        .withArgs(dxswapRouter.address, defaultAmountB, defaultAmountA)
 
       expect(await wethPair.balanceOf(dxRelayer.address)).to.eq(expectedLiquidity.add(liquidityBalance))
     })
@@ -642,7 +646,10 @@ describe('DXswapRelayer', () => {
         .to.emit(weth, 'Transfer')
         .withArgs(wethPair.address, dxRelayer.address, wethAmount)
         .to.emit(wethPair, 'Sync')
-        .withArgs(expandTo18Decimals(36).add(2000), expandTo18Decimals(9).add(500))
+        .withArgs( 
+          weth.address === await wethPair.token0() ? expandTo18Decimals(9).add(500) :  expandTo18Decimals(36).add(2000),
+          wethPartner.address === await wethPair.token1() ?  expandTo18Decimals(36).add(2000) : expandTo18Decimals(9).add(500)
+        )
         .to.emit(wethPair, 'Burn')
         .withArgs(
           dxswapRouter.address,
@@ -702,7 +709,7 @@ describe('DXswapRelayer', () => {
       await dxRelayer.updateOracle(0)
     })
 
-    it('consumes 178639 gas to update the price oracle', async () => {
+    it('consumes 179154 gas to update the price oracle', async () => {
       await addLiquidity(expandTo18Decimals(10), expandTo18Decimals(40))
       await mineBlock(provider, startTime + 10)
       await expect(
@@ -724,7 +731,7 @@ describe('DXswapRelayer', () => {
 
       let tx = await dxRelayer.updateOracle(0)
       let receipt = await provider.getTransactionReceipt(tx.hash)
-      expect(receipt.gasUsed).to.eq(ethers.BigNumber.from('178639'))
+      expect(receipt.gasUsed).to.eq(ethers.BigNumber.from('179154'))
     })
 
     it('reverts if token amount is insufficient based on uniswap price', async () => {

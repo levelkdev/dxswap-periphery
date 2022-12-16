@@ -54,8 +54,7 @@ describe('DXswapTradeRelayer', () => {
   const defaultPriceTolerance = 10000 // 10000 = 1%
   const defaultMinReserve = expandTo18Decimals(1)
   const defaultMaxWindowTime = 300 // 5 Minutes
-  const GAS_ORACLE_UPDATE = 179008; //previously: 179559
-
+  const GAS_ORACLE_UPDATE = 179019; 
   const provider = ethers.provider
 
   // 1/1/2020 @ 12:00 am UTC
@@ -303,53 +302,6 @@ describe('DXswapTradeRelayer', () => {
       expect(await token1.balanceOf(dxTrade.address)).to.eq(initBalanceTokenIn.add(amountOut))
     })
 
-    it('swap ERC20/ERC20 pair on Uniswap tokenB -> tokenA', async () => {
-      initBalanceTokenIn = await token0.balanceOf(dxTrade.address);
-      initBalanceTokenOut = await token1.balanceOf(dxTrade.address);
-      amountToken0 = expandTo18Decimals(880)
-      amountToken1 = expandTo18Decimals(880)
-      // add liquidity to uniswap to provide oracle 
-      await token0.transfer(uniPair.address, amountToken0)
-      await token1.transfer(uniPair.address, amountToken1)
-      // mint lp tokens for dxdao
-      await uniPair.mint(dxTrade.address, overrides)
-
-      await mineBlock(provider, startTime + 10)
-      await expect(
-        dxTrade.createSwapOrder(
-          token0.address,
-          token1.address,
-          defaultAmountOutZero,
-          defaultAmountIn,
-          defaultPriceTolerance,
-          defaultMinReserve,
-          defaultMinReserve,
-          defaultMaxWindowTime,
-          defaultDeadline,
-          uniFactory.address
-        )
-      )
-        .to.emit(dxTrade, 'NewOrder')
-        .withArgs(0)
-
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 350)
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 700)
-
-      const fee = await uniPair.swapFee()
-      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, amountToken1, amountToken0, fee)
-
-      await expect(dxTrade.executeOrder(0, overrides))
-        .to.emit(dxswapPair, 'Swap')
-        .withArgs(dxswapRouter.address, defaultAmountIn, 0, 0, amountOut, dxTrade.address)
-        .to.emit(dxTrade, 'ExecutedOrder')
-        .withArgs(0)
-
-      expect(await token0.balanceOf(dxTrade.address)).to.eq(initBalanceTokenOut.add(amountOut));
-      expect(await token1.balanceOf(dxTrade.address)).to.eq(initBalanceTokenIn.sub(defaultAmountIn))
-    })
-
     it('swap ERC20/ERC20 DXswap with price = 2', async () => {
       initBalanceTokenIn = await token0.balanceOf(dxTrade.address);
       initBalanceTokenOut = await token1.balanceOf(dxTrade.address);
@@ -387,53 +339,6 @@ describe('DXswapTradeRelayer', () => {
 
       expect(await token0.balanceOf(dxTrade.address)).to.eq(initBalanceTokenIn.sub(defaultAmountIn))
       expect(await token1.balanceOf(dxTrade.address)).to.eq(initBalanceTokenOut.add(amountOut))
-    })
-
-    it('swap ERC20/ERC20 DXswap with price = 1.5 tokenB -> tokenA', async () => {
-      initBalanceTokenIn = await token0.balanceOf(dxTrade.address);
-      initBalanceTokenOut = await token1.balanceOf(dxTrade.address);
-      amountToken0 = expandTo18Decimals(900)
-      amountToken1 = expandTo18Decimals(600)
-      // add liquidity to uniswap to provide oracle 
-      await token0.transfer(dxswapPair.address, amountToken0)
-      await token1.transfer(dxswapPair.address, amountToken1)
-      // mint lp tokens for dxdao
-      await dxswapPair.mint(dxTrade.address, overrides)
-
-      await mineBlock(provider, startTime + 10)
-      await expect(
-        dxTrade.createSwapOrder(
-          token0.address,
-          token1.address,
-          defaultAmountOutZero,
-          defaultAmountIn,
-          defaultPriceTolerance,
-          defaultMinReserve,
-          defaultMinReserve,
-          defaultMaxWindowTime,
-          defaultDeadline,
-          dxswapFactory.address
-        )
-      )
-        .to.emit(dxTrade, 'NewOrder')
-        .withArgs(0)
-
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 350)
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 700)
-
-      const fee = await dxswapPair.swapFee()
-      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, amountToken1, amountToken0, fee)
-
-      await expect(dxTrade.executeOrder(0, overrides))
-        .to.emit(dxswapPair, 'Swap')
-        .withArgs(dxswapRouter.address, defaultAmountIn, 0, 0, amountOut, dxTrade.address)
-        .to.emit(dxTrade, 'ExecutedOrder')
-        .withArgs(0)
-
-      expect(await token0.balanceOf(dxTrade.address)).to.eq(initBalanceTokenOut.add(amountOut));
-      expect(await token1.balanceOf(dxTrade.address)).to.eq(initBalanceTokenIn.sub(defaultAmountIn))
     })
 
     it('swap ETH/ERC20 pair on Uniswap', async () => {
@@ -492,54 +397,6 @@ describe('DXswapTradeRelayer', () => {
       // pool balance
       expect(await wethPartner.balanceOf(uniWethPair.address)).to.eq(amountToken1.sub(amountOut))
       expect(await weth.balanceOf(uniWethPair.address)).to.eq(amountToken0.add(defaultAmountIn))
-    })
-
-    it('swap ERC20/ERC20 DXswap with price = 1.75', async () => {
-      initBalanceTokenIn = await token0.balanceOf(dxTrade.address);
-      initBalanceTokenOut = await token1.balanceOf(dxTrade.address);
-
-      amountToken0 = expandTo18Decimals(400)
-      amountToken1 = expandTo18Decimals(700)
-      // add liquidity
-      await addLiquidity(amountToken0, amountToken1)
-      await mineBlock(provider, startTime + 10)
-      await expect(
-        dxTrade.createSwapOrder(
-          token0.address,
-          token1.address,
-          defaultAmountIn,
-          defaultAmountOutZero,
-          defaultPriceTolerance,
-          defaultMinReserve,
-          defaultMinReserve,
-          defaultMaxWindowTime,
-          defaultDeadline,
-          dxswapFactory.address
-        )
-      )
-        .to.emit(dxTrade, 'NewOrder')
-        .withArgs(0)
-
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 350)
-      await dxTrade.updateOracle(0)
-      await mineBlock(provider, startTime + 700)
-
-      const fee = await dxswapPair.swapFee()
-      const amountOut = await dxswapRouter.getAmountOut(defaultAmountIn, amountToken0, amountToken1, fee)
-
-      await expect(dxTrade.executeOrder(0, overrides))
-        .to.emit(dxswapPair, 'Transfer')
-        .withArgs(AddressZero, dxTrade.address, expectedLiquidity)
-        .to.emit(dxswapPair, 'Sync')
-        .withArgs(await token0.balanceOf(dxswapPair.address), await token1.balanceOf(dxswapPair.address))
-        .to.emit(dxswapPair, 'Mint')
-        .withArgs(dxswapRouter.address, defaultAmountIn, defaultAmountOutZero)
-        .to.emit(dxTrade, 'ExecutedOrder')
-        .withArgs(0)
-
-      expect(await token0.balanceOf(dxswapPair.address)).to.eq(amountToken0.add(defaultAmountIn))
-      expect(await token1.balanceOf(dxswapPair.address)).to.eq(amountToken1.sub(amountOut))
     })
 
     it('swap ETH/ERC20 DXswap', async () => {
