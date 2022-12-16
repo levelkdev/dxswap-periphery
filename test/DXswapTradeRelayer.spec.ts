@@ -54,7 +54,7 @@ describe('DXswapTradeRelayer', () => {
   const defaultPriceTolerance = 10000 // 10000 = 1%
   const defaultMinReserve = expandTo18Decimals(1)
   const defaultMaxWindowTime = 300 // 5 Minutes
-  const GAS_ORACLE_UPDATE = 179019; 
+  const GAS_ORACLE_UPDATE = 178792; 
   const provider = ethers.provider
 
   // 1/1/2020 @ 12:00 am UTC

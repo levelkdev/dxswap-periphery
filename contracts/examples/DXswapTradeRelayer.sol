@@ -1,26 +1,19 @@
 pragma solidity =0.8.16;
 pragma experimental ABIEncoderV2;
 
-import './examples/OracleCreator.sol';
-import './interfaces/IDXswapFactory.sol';
-import './interfaces/IDXswapRouter.sol';
-import './libraries/TransferHelper.sol';
-import './interfaces/IERC20.sol';
-import './interfaces/IWETH.sol';
-import './libraries/SafeMath.sol';
-import './libraries/DXswapLibrary.sol';
+import './OracleCreator.sol';
+import './../interfaces/IDXswapFactory.sol';
+import './../interfaces/IDXswapRouter.sol';
+import './../libraries/TransferHelper.sol';
+import './../interfaces/IERC20.sol';
+import './../interfaces/IWETH.sol';
+import './../libraries/DXswapLibrary.sol';
 
 contract DXswapTradeRelayer {
-    using SafeMath for uint256;
-
     event NewOrder(uint256 indexed _orderIndex);
-
     event ExecutedOrder(uint256 indexed _orderIndex);
-
     event WithdrawnExpiredOrder(uint256 indexed _orderIndex);
-
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
     event Details(uint256 amountIn, uint256 amountOut);
 
     struct Order {
@@ -40,7 +33,7 @@ contract DXswapTradeRelayer {
 
     uint256 public immutable GAS_ORACLE_UPDATE = 168364;
     uint256 public immutable PARTS_PER_MILLION = 1000000;
-    uint256 public immutable BOUNTY = 0.01 ether; // TODO To be decided
+    uint256 public immutable BOUNTY = 0.01 ether;
     uint8 public immutable PROVISION = 1;
     uint8 public immutable REMOVAL = 2;
 
@@ -151,7 +144,7 @@ contract DXswapTradeRelayer {
             order.amountIn
         );
 
-        uint256 minAmountOut = amountOut.sub(amountOut.mul(order.priceTolerance) / PARTS_PER_MILLION);
+        uint256 minAmountOut = amountOut - ((amountOut * (order.priceTolerance)) / PARTS_PER_MILLION);
 
         order.executed = true;
 
@@ -165,7 +158,7 @@ contract DXswapTradeRelayer {
         Order storage order = orders[orderIndex];
         require(block.timestamp <= order.deadline, 'DXswapRelayer: DEADLINE_REACHED');
         require(!oracleCreator.isOracleFinalized(order.oracleId), 'DXswapRelayer: OBSERVATION_ENDED');
-        uint256 amountBounty = GAS_ORACLE_UPDATE.mul(block.basefee).add(BOUNTY);
+        uint256 amountBounty = GAS_ORACLE_UPDATE * (block.basefee) + (BOUNTY);
 
         (uint256 reserveA, uint256 reserveB, ) = IDXswapPair(order.oraclePair).getReserves();
         require(reserveA >= order.minReserveA && reserveB >= order.minReserveB, 'DXswapRelayer: RESERVE_TOO_LOW');
@@ -238,7 +231,7 @@ contract DXswapTradeRelayer {
         uint256 maxWindowTime
     ) internal pure returns (uint256 windowTime) {
         if (reserveA > 0 && reserveB > 0) {
-            uint256 poolStake = (amountIn).mul(PARTS_PER_MILLION) / reserveA.add(reserveB);
+            uint256 poolStake = ((amountIn) * (PARTS_PER_MILLION)) / reserveA + (reserveB);
             // poolStake: 0.1% = 1000; 1=10000; 10% = 100000;
             if (poolStake < 1000) {
                 windowTime = 30;
